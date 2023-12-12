@@ -1,0 +1,111 @@
+
+```{r }
+#We want to know whether the frost incident can be predicted using a logistic model. We use a binomial model for this case. The frost indcident will be predicted from four parameters, i.e., month, hours, minute, and canopy. Our results indicates the logistic model can only predict 54.9% frost incident with a sensitivy of more than 50%. It indicates the incident can't be predicted using logistic model
+
+#Import Data
+library(readxl)
+Final_Gorse_Temps_2023 <- read_excel("C:/Users/ACER SWIFT3/OneDrive/PhD Couses/OCN 682 Data Science Fundamental in R/Group Work/Final Gorse Temps 2023.xlsx")
+View(Final_Gorse_Temps_2023)
+Experiment <- Final_Gorse_Temps_2023
+head(Experiment)
+str(Experiment)
+summary(Experiment)
+#The script wants to import data directly from excel to Rstudio and gives data identity
+#and check the basis data attributes
+
+# Load necessary libraries
+library(dplyr)
+library(glmnet)
+library(ROCR)
+library(pROC)
+library(ggplot2)
+#We want to activate several packages used for data analysis using binomial logistic regression
+
+
+# Assuming 'data' is your dataset
+# Check the structure of your data
+str(Experiment)
+#It aims to identify the data structure and kind of variables in every dataset
+
+# Data preprocessing
+# Assuming 'Frost' is a binary variable (0 or 1)
+Experiment$Frost <- as.factor(Experiment$Frost)
+#This script converts data from numeric to factor since the binomial has dependent variables as factor
+
+# Split the data into training and testing sets
+set.seed(123)
+train_indices <- sample(1:nrow(Experiment), 0.7 * nrow(Experiment))
+train_data <- Experiment[train_indices, ]
+test_data <- Experiment[-train_indices, ]
+#It aims to split data into two categories, i.e., namely training data for building model
+#and test data for validating model
+
+# Fit logistic regression model
+model <- glm(Frost ~ Month + Hours + Minute + Canopy, 
+             data = Experiment, family = "binomial")
+#This is script for logistic regression in R with Frost as dependent variable
+#and Month, hours, minute, and canopy as independen variable
+#We want to know what kind of variable that significantly related to Frost Incident
+
+
+
+# Display the summary of the model
+summary(model)
+caret::varImp(model)
+car::vif(model)
+#Summary is used to show the result of logistic model and identify the significant parameter from these results it indicates that only Month, Hours, and Canopy which has a significant relationship with Frost
+#VarImp aims to see feature important of predictor variable. Our results indicates Month has the highest relative contribution, followed by Hours and Canopy
+#VIF is used to detect whether there is multicolinearity between predictor variable. Since most variable has VIF lower than 3, it indicates no multicolinearity
+
+# Predictions on the test set
+predictions <- predict(model, newdata = test_data, type = "response")
+#This script want to conduct validation test
+
+# Convert predictions to binary (0 or 1)
+threshold <- 0.5
+predicted_labels <- ifelse(predictions > threshold, 1, 0)
+actual_labels <- test_data$Frost
+
+# Confusion matrix
+conf_matrix <- table(predicted_labels, actual_labels)
+conf_matrix
+
+# Accuracy, Sensitivity, SPecifity
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+sensitivity <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+specificity <- conf_matrix[1, 1] / sum(conf_matrix[1, ])
+
+cat("Accuracy:", accuracy, "\n")
+cat("Sensitivity:", sensitivity, "\n")
+cat("Specificity:", specificity, "\n")
+#This script aims to see accuracy, sensitivity, and specificity from the model as indicator for model reliability. Unfortunately, this model can't give a good reliability based on the accuracy, sensitivity, and specificity.
+
+# ROC curve and AUC
+roc_curve <- roc(test_data$Frost, predictions)
+auc_value <- auc(roc_curve)
+auc_value
+#It calculates ROC and UAC curve for see the area under curve
+
+# Plot ROC curve
+plot(roc_curve, main = "ROC Curve", col = "blue", lwd = 2)
+abline(a = 0, b = 1, lty = 2, col = "red")  # Diagonal line
+legend("bottomright", legend = paste("AUC =", round(auc_value, 2)), col = "blue", lty = 1, cex = 0.8)
+#It makes a graph to see the under curve area for probability
+
+# Create a logistic regression plot
+ggplot(Experiment, aes(x = Hours, y = Frost)) +
+  geom_point()+
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE) 
+#It is used to make a trend of logistic graph from the model and check whether the approach can be used or not
+
+#Conclusion: The logistic regression can't be used to predict frost incident
+```
+
+
+
+---
+title: OCN-682-New-Script-Description.R
+author: ACER SWIFT3
+date: '2023-12-11'
+
+---
